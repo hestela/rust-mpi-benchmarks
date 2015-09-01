@@ -1,0 +1,102 @@
+#![feature(iter_arith)]
+extern crate mpi;
+extern crate num;
+extern crate time;
+
+use mpi::traits::*;
+use mpi::topology::SystemCommunicator;
+use num::pow;
+use time::precise_time_s;
+
+const MAX_MSG_SIZE: isize = (1<<22);
+const MAX_ALIGNMENT: isize = 16384;
+const BUF_SIZE: isize = MAX_MSG_SIZE + MAX_ALIGNMENT;
+const LARGE_MSG_SIZE: isize = 8192 - 1;
+const LOOP_SMALL: isize = 10000;
+const LOOP_LARGE: isize = 1000;
+const SKIP_SMALL: isize = 100;
+const SKIP_LARGE: isize = 10;
+
+fn main() {
+  let universe = mpi::initialize().unwrap();
+  let world = universe.world();
+  let size = world.size();
+  let rank = world.rank();
+  let pairs = size/2;
+
+  if rank == 0 {
+    println!("# RUST OSU MPI Multi Latency Test v1.0");
+    println!("# Size               Latency (us)");
+  }
+
+  world.barrier();
+  multi_latency(rank, pairs, world);
+  world.barrier();
+}
+
+fn multi_latency(rank: i32, pairs: i32, world: SystemCommunicator) {
+  let s_buf: std::vec::Vec<u32> = (0..BUF_SIZE).map(|_| 1).collect();
+  let root_process = world.process_at_rank(0);
+
+  for size in (0..1).chain((0..23).map(|x| pow(2, x))) {
+    let mut t_start = 0.0f64;
+
+    world.barrier();
+
+    let (range, extra) = match size {
+      x @ _ if x < LARGE_MSG_SIZE => (LOOP_LARGE, SKIP_LARGE),
+      _ => (LOOP_SMALL, SKIP_SMALL)
+    };
+
+    match rank {
+      _ if rank < pairs => {
+        let peer_rank = rank + pairs;
+
+        for iter in (0 .. range + extra) {
+          if iter == extra {
+            // TODO: make a PR to add MPI_Wtime
+            t_start = precise_time_s();
+            world.barrier();
+          }
+
+          world.process_at_rank(peer_rank).send(&s_buf[0.. size as usize]);
+          // XXX: This will probabaly hurt performance in comarison to C.
+          let (_, _) = world.receive_vec::<u32>();
+        }
+      },
+      _ => {
+        let peer_rank = rank - pairs;
+
+        for iter in (0 .. range + extra) {
+          if iter == extra {
+            t_start = precise_time_s();
+            world.barrier();
+          }
+
+          // XXX: This will probabaly hurt performance in comarison to C.
+          let (_, _) = world.receive_vec::<u32>();
+          world.process_at_rank(peer_rank).send(&s_buf[0.. size as usize]);
+        }
+      }
+    }
+
+    let t_end = precise_time_s();
+    let latency = (t_end - t_start) * 1.0e6 / (2.0 * range as f64);
+
+    // XXX: Using AllGather instead of Reduce.
+    let mut a = if world.rank() == 0 {
+      Some(std::iter::repeat(0.0f64).take(world.size() as usize).collect::<Vec<f64>>())
+    } else {
+      None
+    };
+
+    root_process.gather_into(&latency, a.as_mut().map(|x| &mut x[..]));
+
+    if world.rank() == 0 {
+      let t: Vec<f64> = a.unwrap();
+      let avg_latency: f64 = t.iter().sum::<f64>() / (pairs * 2) as f64;
+      // FIXME: need padding from format!
+      println!("{}           {} ", size, avg_latency);
+    }
+  }
+}

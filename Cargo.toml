@@ -1,0 +1,19 @@
+[package]
+name = "rust-mpi-micro-bench"
+version = "0.1.0"
+authors = ["Henry Estela <henryestela@gmail.com>"]
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = false
+debug-assertions = false
+codegen-units = 1
+
+[dependencies.mpi]
+git = "https://github.com/bsteinb/rsmpi.git"
+
+[dependencies]
+num = "*"
+time = "*"
