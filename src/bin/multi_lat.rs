@@ -44,7 +44,7 @@ fn multi_latency(rank: i32, pairs: i32, world: SystemCommunicator) {
     world.barrier();
 
     let (range, extra) = match size {
-      x @ _ if x < LARGE_MSG_SIZE => (LOOP_LARGE, SKIP_LARGE),
+      x @ _ if x > LARGE_MSG_SIZE => (LOOP_LARGE, SKIP_LARGE),
       _ => (LOOP_SMALL, SKIP_SMALL)
     };
 
@@ -95,8 +95,7 @@ fn multi_latency(rank: i32, pairs: i32, world: SystemCommunicator) {
     if world.rank() == 0 {
       let t: Vec<f64> = a.unwrap();
       let avg_latency: f64 = t.iter().sum::<f64>() / (pairs * 2) as f64;
-      // FIXME: need padding from format!
-      println!("{}           {} ", size, avg_latency);
+      println!("{:<28} {1:.2}", size, avg_latency);
     }
   }
 }
