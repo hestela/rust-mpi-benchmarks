@@ -7,6 +7,7 @@ use mpi::topology::SystemCommunicator;
 use num::pow;
 use time::precise_time_s;
 use mpi::collective::SystemOperation;
+use std::process;
 
 const MAX_MSG_SIZE: usize = (1<<22);
 const MAX_ALIGNMENT: usize = 16384;
@@ -23,6 +24,11 @@ fn main() {
   let size = world.size();
   let rank = world.rank();
   let pairs = size/2;
+
+  if size < 2 {
+    println!("ERROR: This test requires at least 2 processes");
+    process::exit(1);
+  }
 
   if rank == 0 {
     println!("# RUST OSU MPI Multi Latency Test v1.0");
