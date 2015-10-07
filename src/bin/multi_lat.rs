@@ -1,4 +1,3 @@
-#![feature(iter_arith)]
 extern crate mpi;
 extern crate num;
 extern crate time;
@@ -7,10 +6,11 @@ use mpi::traits::*;
 use mpi::topology::SystemCommunicator;
 use num::pow;
 use time::precise_time_s;
+use mpi::collective::SystemOperation;
 
-const MAX_MSG_SIZE: isize = (1<<22);
-const MAX_ALIGNMENT: isize = 16384;
-const BUF_SIZE: isize = MAX_MSG_SIZE + MAX_ALIGNMENT;
+const MAX_MSG_SIZE: usize = (1<<22);
+const MAX_ALIGNMENT: usize = 16384;
+const BUF_SIZE: usize = MAX_MSG_SIZE + MAX_ALIGNMENT;
 const LARGE_MSG_SIZE: isize = 8192 - 1;
 const LOOP_SMALL: isize = 10000;
 const LOOP_LARGE: isize = 1000;
@@ -35,7 +35,7 @@ fn main() {
 }
 
 fn multi_latency(rank: i32, pairs: i32, world: SystemCommunicator) {
-  let s_buf: std::vec::Vec<u32> = (0..BUF_SIZE).map(|_| 1).collect();
+  let s_buf = vec![0;BUF_SIZE];
   let root_process = world.process_at_rank(0);
 
   for size in (0..1).chain((0..23).map(|x| pow(2, x))) {
@@ -81,20 +81,13 @@ fn multi_latency(rank: i32, pairs: i32, world: SystemCommunicator) {
     }
 
     let t_end = precise_time_s();
-    let latency = (t_end - t_start) * 1.0e6 / (2.0 * range as f64);
+    let latency = ((t_end - t_start) * 1.0e6) / (2.0 * range as f64);
 
-    // XXX: Using AllGather instead of Reduce.
-    let mut a = if world.rank() == 0 {
-      Some(std::iter::repeat(0.0f64).take(world.size() as usize).collect::<Vec<f64>>())
-    } else {
-      None
-    };
-
-    root_process.gather_into(&latency, a.as_mut().map(|x| &mut x[..]));
+    let mut latency_sum = 0.0f64;
+    root_process.reduce_into(&latency, Some(&mut latency_sum), SystemOperation::sum());
 
     if world.rank() == 0 {
-      let t: Vec<f64> = a.unwrap();
-      let avg_latency: f64 = t.iter().sum::<f64>() / (pairs * 2) as f64;
+      let avg_latency: f64 = latency_sum / (pairs * 2) as f64;
       println!("{:<28} {1:.2}", size, avg_latency);
     }
   }
