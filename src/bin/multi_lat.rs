@@ -1,11 +1,9 @@
 extern crate mpi;
 extern crate num;
-extern crate time;
 
 use mpi::traits::*;
-use mpi::topology::SystemCommunicator;
+use mpi::topology::Universe;
 use num::pow;
-use time::precise_time_s;
 use mpi::collective::SystemOperation;
 use std::process;
 
@@ -36,11 +34,12 @@ fn main() {
   }
 
   world.barrier();
-  multi_latency(rank, pairs, world);
+  multi_latency(rank, pairs, universe);
   world.barrier();
 }
 
-fn multi_latency(rank: i32, pairs: i32, world: SystemCommunicator) {
+fn multi_latency(rank: i32, pairs: i32, universe: Universe) {
+  let world = universe.world();
   let s_buf = vec![0;BUF_SIZE];
   let root_process = world.process_at_rank(0);
 
@@ -60,8 +59,7 @@ fn multi_latency(rank: i32, pairs: i32, world: SystemCommunicator) {
 
         for iter in (0 .. range + extra) {
           if iter == extra {
-            // TODO: make a PR to add MPI_Wtime
-            t_start = precise_time_s();
+            t_start = universe.get_time();
             world.barrier();
           }
 
@@ -75,7 +73,7 @@ fn multi_latency(rank: i32, pairs: i32, world: SystemCommunicator) {
 
         for iter in (0 .. range + extra) {
           if iter == extra {
-            t_start = precise_time_s();
+            t_start = universe.get_time();
             world.barrier();
           }
 
@@ -86,7 +84,7 @@ fn multi_latency(rank: i32, pairs: i32, world: SystemCommunicator) {
       }
     }
 
-    let t_end = precise_time_s();
+    let t_end = universe.get_time();
     let latency = ((t_end - t_start) * 1.0e6) / (2.0 * range as f64);
 
     let mut latency_sum = 0.0f64;
