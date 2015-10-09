@@ -34,12 +34,12 @@ fn main() {
   }
 
   world.barrier();
-  multi_latency(rank, pairs, universe, world);
+  multi_latency(rank, pairs, &universe, &world);
   world.barrier();
 }
 
 fn multi_latency(rank: i32, pairs: i32,
-                 universe: Universe, world: SystemCommunicator) {
+                 universe: &Universe, world: &SystemCommunicator) {
   let s_buf = vec![0;BUF_SIZE];
   let root_process = world.process_at_rank(0);
 
