@@ -17,3 +17,4 @@ git = "https://github.com/bsteinb/rsmpi.git"
 [dependencies]
 num = "*"
 time = "*"
+getopts = "*"
