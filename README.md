@@ -1,5 +1,6 @@
-# rust-mpi-benchmarks
+# rust-mpi-benchmarks [![Build Status](https://travis-ci.org/hestela/rust-mpi-benchmarks.svg)](https://travis-ci.org/hestela/rust-mpi-benchmarks)
 Rust version of osu-microbenchmarks
+
 
 ##Build benchmarks
 `cargo build [--release]`
