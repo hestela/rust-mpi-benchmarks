@@ -2,6 +2,11 @@
 
 set -e
 
+if [ -d "$HOME/ompi" ]; then
+  echo "Openmpi already installed."
+  exit 0
+fi
+
 curl http://www.open-mpi.org/software/ompi/v1.10/downloads/openmpi-1.10.0.tar.gz | tar zx
 
 cd openmpi-1.10.0
