@@ -2,7 +2,9 @@
 
 set -e
 
-if [ -d "$HOME/ompi" ]; then
+if [ -f "$HOME/ompi/bin/mpicc" ]; then
+  export PATH=$HOME/ompi/bin:$PATH
+  export LD_LIBRARY_PATH=$HOME/ompi/lib:$LD_LIBRARY_PATH
   echo "Openmpi already installed."
   exit 0
 fi
