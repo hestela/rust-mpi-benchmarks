@@ -1,0 +1,31 @@
+language: rust
+
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - libclang-3.4-dev
+      - build-essential
+
+rust:
+  - stable
+  - beta
+
+env:
+  matrix:
+    env:
+      # ompi
+      - PATH=$HOME/ompi/bin:$PATH LD_LIBRARY_PATH=$HOME/ompi/lib:$LD_LIBRARY_PATH
+  global:
+    - LIBCLANG_PATH=/usr/lib/llvm-3.4/lib
+
+install:
+  - sh ci/build-ompi.sh
+
+script:
+  - cargo build --release && sh ci/run-bench.sh
+
+cache:
+    directories:
+          - $HOME/ompi
