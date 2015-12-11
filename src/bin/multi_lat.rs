@@ -57,7 +57,7 @@ fn multi_latency(rank: i32, pairs: i32,
       _ if rank < pairs => {
         let peer_rank = rank + pairs;
 
-        for iter in (0 .. range + extra) {
+        for iter in 0 .. range + extra {
           if iter == extra {
             t_start = universe.get_time();
             world.barrier();
@@ -71,7 +71,7 @@ fn multi_latency(rank: i32, pairs: i32,
       _ => {
         let peer_rank = rank - pairs;
 
-        for iter in (0 .. range + extra) {
+        for iter in 0 .. range + extra {
           if iter == extra {
             t_start = universe.get_time();
             world.barrier();
@@ -87,12 +87,13 @@ fn multi_latency(rank: i32, pairs: i32,
     let t_end = universe.get_time();
     let latency = ((t_end - t_start) * 1.0e6) / (2.0 * range as f64);
 
-    let mut latency_sum = 0.0f64;
-    root_process.reduce_into(&latency, Some(&mut latency_sum), SystemOperation::sum());
-
-    if world.rank() == 0 {
+    if rank == 0 {
+      let mut latency_sum = 0.0f64;
+      root_process.reduce_into_root(&latency, &mut latency_sum, SystemOperation::sum());
       let avg_latency: f64 = latency_sum / (pairs * 2) as f64;
       println!("{:<28} {1:.2}", size, avg_latency);
+    } else {
+      root_process.reduce_into(&latency, SystemOperation::sum());
     }
   }
 }

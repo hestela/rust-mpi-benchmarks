@@ -13,8 +13,9 @@ curl http://www.open-mpi.org/software/ompi/v1.10/downloads/openmpi-1.10.0.tar.gz
 
 cd openmpi-1.10.0
 
+echo "Building OMPI..."
 mkdir -p $HOME/ompi
-./configure --enable-shared --prefix=$HOME/ompi --disable-fortran
-make -j 2
-make -j 2 install
+./configure --enable-shared --prefix=$HOME/ompi > /dev/null
+make -j 2 > /dev/null
+make -j 2 install > /dev/null
 
