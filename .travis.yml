@@ -27,5 +27,7 @@ script:
   - cargo build --release && sh ci/run-bench.sh
 
 cache:
-    directories:
-          - $HOME/ompi
+  bundler: true
+  apt: true
+  directories:
+    - $HOME/ompi
