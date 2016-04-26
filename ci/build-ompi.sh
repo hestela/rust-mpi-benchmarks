@@ -9,7 +9,7 @@ if [ -f "$HOME/ompi/bin/mpicc" ]; then
   exit 0
 fi
 
-wget http://www.open-mpi.org/software/ompi/v1.10/downloads/openmpi-1.10.0.tar.gz
+wget http://www.open-mpi.org/software/ompi/v1.10/downloads/openmpi-1.10.0.tar.gz --no-check-certificate
 tar xf openmpi-1.10.0.tar.gz
 
 cd openmpi-1.10.0
