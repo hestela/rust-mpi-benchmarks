@@ -64,8 +64,7 @@ fn multi_latency(rank: i32, pairs: i32,
           }
 
           world.process_at_rank(peer_rank).send(&s_buf[0.. size as usize]);
-          // XXX: This will probabaly hurt performance in comarison to C.
-          let (_, _) = world.receive_vec::<u32>();
+          let (_, _) = world.process_at_rank(peer_rank).receive_vec::<u32>();
         }
       },
       _ => {
@@ -77,8 +76,7 @@ fn multi_latency(rank: i32, pairs: i32,
             world.barrier();
           }
 
-          // XXX: This will probabaly hurt performance in comarison to C.
-          let (_, _) = world.receive_vec::<u32>();
+          let (_, _) = world.process_at_rank(peer_rank).receive_vec::<u32>();
           world.process_at_rank(peer_rank).send(&s_buf[0.. size as usize]);
         }
       }
@@ -89,11 +87,11 @@ fn multi_latency(rank: i32, pairs: i32,
 
     if rank == 0 {
       let mut latency_sum = 0.0f64;
-      root_process.reduce_into_root(&latency, &mut latency_sum, SystemOperation::sum());
+      root_process.reduce_into_root(&latency, &mut latency_sum, &SystemOperation::sum());
       let avg_latency: f64 = latency_sum / (pairs * 2) as f64;
       println!("{:<28} {1:.2}", size, avg_latency);
     } else {
-      root_process.reduce_into(&latency, SystemOperation::sum());
+      root_process.reduce_into(&latency, &SystemOperation::sum());
     }
   }
 }
