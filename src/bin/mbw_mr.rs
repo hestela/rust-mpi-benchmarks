@@ -14,21 +14,24 @@ struct CmdOpts {
 fn main() {
   let args: Vec<String> = env::args().collect();
   let opts = get_opts();
-  // TODO: replace unwrap with match
-  let cmd_opts = parse_opts(opts, args).unwrap();
+  let cmd_opts = match parse_opts(opts, args) {
+    None => std::process::exit(1),
+    Some(x) => x
+  };
+
   println!("DEBUG: got opts: print_rate {}, pairs {}, num_msgs {}, vary_window {}",
           cmd_opts.print_rate, cmd_opts.pairs.unwrap_or(0), cmd_opts.num_msgs, cmd_opts.vary_window);
 }
 
 fn get_opts() -> Options {
   let mut opts = Options::new();
-  opts.optopt("r", "", "Print uni-directional message rate (default 1)", "<0,1>");
+  opts.optflag("r", "", "Don't print uni-directional message rate (default on)");
   opts.optopt("p", "", "Number of pairs involved (default np / 2)", "pairs");
   opts.optopt("w", "",
               "Number of messages sent before acknowledgement (64, 10)
               [cannot be used with -v]", "window");
-  opts.optopt("v", "", "Vary the window size (default no)
-              [cannot be used with -w]", "<yes,no>");
+  opts.optflag("v", "", "Vary the window size (default off)
+              [cannot be used with -w]");
   opts.optflag("h", "help", "Print this help");
   opts
 }
@@ -36,7 +39,10 @@ fn get_opts() -> Options {
 fn parse_opts(opts: Options, args: Vec<String>) -> Option<CmdOpts> {
   let matches = match opts.parse(&args[1..]) {
     Ok(m) => { m }
-    Err(e) => { panic!(e.to_string()) }
+    Err(e) => {
+      println!("{}", e.to_string());
+      return None;
+    }
   };
 
   if matches.opt_present("w") && matches.opt_present("v")
@@ -44,14 +50,8 @@ fn parse_opts(opts: Options, args: Vec<String>) -> Option<CmdOpts> {
     print_usage(opts);
     return None;
   };
-  let print_rate = match matches.opt_str("r") {
-    Some(val) => match val.as_ref() {
-      "1" => true,
-      _ => false
-    },
-    _ => false
-  };
-  let pairs: Option<usize> = match matches.opt_str("p") {
+  let print_rate = !matches.opt_present("r");
+  let pairs = match matches.opt_str("p") {
     Some(val) => match val.parse::<usize>().unwrap_or(0) {
       p if p > 0 => Some(p),
       _ => None
@@ -59,14 +59,7 @@ fn parse_opts(opts: Options, args: Vec<String>) -> Option<CmdOpts> {
     _ => None
   };
   let num_msgs = matches.opt_str("w").unwrap_or("64".to_string()).parse::<usize>().unwrap_or(64);
-  let vary_window = match matches.opt_str("v") {
-    Some(val) => match val.as_ref() {
-      "no" => false,
-      "yes" => true,
-      _ => false
-    },
-    _ => false
-  };
+  let vary_window = matches.opt_present("v");
   Some(CmdOpts {
     print_rate: print_rate,
     // We can't get the default value for pairs, unless we init mpi.
